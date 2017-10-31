@@ -111,7 +111,9 @@ namespace Edsparr.Houseplugin
                         }catch { }
                         placer.GiveItem(s.structure.id, 1);
                     }
-                    DeleteStructure(getTransform(s.point));
+                    var rocket = new RocketPlayer(s.owner.ToString());
+                    if (!rocket.HasPermission("houseplugin.bypass"))
+                        DeleteStructure(getTransform(s.point));
                 }
                 foreach(var b in barricades)
                 {
@@ -124,6 +126,8 @@ namespace Edsparr.Houseplugin
                         }catch { }
                         placer.GiveItem(b.barricade.id, 1);
                     }
+                    var rocket = new RocketPlayer(b.owner.ToString());
+                    if(!rocket.HasPermission("houseplugin.bypass"))
                     DeleteBarriacade(getTransform(b.point));
                 }
             }
