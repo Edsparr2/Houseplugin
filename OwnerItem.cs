@@ -24,12 +24,13 @@ namespace Edsparr.Houseplugin
         public ulong owner;
         public DateTime boughtAt;
         public Vector3 house;
-
-        public OwnerItem(ulong owner, DateTime boughtAt, Vector3 house)
+        public ulong steamGroup;
+        public OwnerItem(ulong owner, DateTime boughtAt, Vector3 house, ulong steamGroup)
         {
             this.owner = owner;
             this.boughtAt = boughtAt;
             this.house = house;
+            this.steamGroup = steamGroup;
         }
 
         public OwnerItem() { }

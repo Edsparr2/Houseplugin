@@ -95,13 +95,20 @@ namespace Edsparr.Houseplugin
         public void Execute(IRocketPlayer caller, string[] command)
         {
             UnturnedPlayer player = (UnturnedPlayer)caller;
-            var bfound = Plugin.Instance.Configuration.Instance.BoughtHouses.Find(c => (c.house == Plugin.Instance.getHouse(player.Position).position));
-            var afound = Plugin.Instance.Configuration.Instance.Houses.Find(c => (c.id == Plugin.Instance.getHouseLevelObject(player.Position).id));
-            string final = "";
+            OwnerItem bfound = null;
+            HouseItem afound = null;
+            try
+            {
+                 bfound = Plugin.Instance.Configuration.Instance.BoughtHouses.Find(c => (c.house == Plugin.Instance.getHouse(player.Position).position));
+                 afound = Plugin.Instance.Configuration.Instance.Houses.Find(c => (c.id == Plugin.Instance.getHouseLevelObject(player.Position).id));
+            }
+            catch { if (afound != null) { UnturnedChat.Say(player, "This house is not calimed and cost " + afound.cost + "!", Color.red); return; } UnturnedChat.Say(player, "Couden't manage to find a house here!", Color.red); return; }
+                string final = "";
             if(bfound == null && afound != null)
             {
                 final = "This house is not calimed and cost " + afound.cost + "!";
-            } else if(bfound != null)
+            }
+            else if(bfound != null)
             {
                 final = "This house has been claimed by " + Edsparr.DisplaynameSaver.Plugin.Instance.GetDisplayName((CSteamID)bfound.owner) + " and payed the rent at " + bfound.boughtAt + " of " + afound.cost + "!";
             }

@@ -111,7 +111,7 @@ namespace Edsparr.Houseplugin
                 UnturnedChat.Say(player, "You can't afford this house! It cost " + Plugin.Instance.getCost(Plugin.Instance.getHouse(player.Position)) + "!", Color.red); return;
             }
             decimal cost = 0;
-            Plugin.Instance.buyhHouse(Plugin.Instance.getHouse(player.Position), (ulong)player.CSteamID, out cost);
+            Plugin.Instance.buyhHouse(Plugin.Instance.getHouse(player.Position), (ulong)player.CSteamID, (ulong)player.Player.quests.groupID, out cost);
             UnturnedChat.Say(player, "You succesfully bought this house for " + cost + "!", Color.yellow);
             Uconomy.Instance.Database.IncreaseBalance(player.CSteamID.ToString(), -cost);
         }

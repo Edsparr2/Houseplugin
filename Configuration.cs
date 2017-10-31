@@ -20,8 +20,6 @@ namespace Edsparr.Houseplugin
         {
             FeeTime = 24 * 7;
             Houses.Add(new HouseItem(1, 10000));
-            Data = null;
-
         }
     }
 }

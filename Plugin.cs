@@ -41,12 +41,26 @@ namespace Edsparr.Houseplugin
         protected override void Load()
         {
             Plugin.Instance = this;
+            U.Events.OnPlayerConnected += OnConnected;
+        }
+
+        private void OnConnected(UnturnedPlayer player)
+        {
+            if(Configuration.Instance.Data.Find(c => (c.Player == (ulong)player.CSteamID)) == null)
+            {
+                Configuration.Instance.Data.Add(new DisplaynameSaver.PlayerInfo((ulong)player.CSteamID, player.CharacterName));
+            }
+            else
+            {
+                Configuration.Instance.Data.Find(c => (c.Player == (ulong)player.CSteamID)).Displayname = player.CharacterName;
+            }
+            Configuration.Save();
         }
 
         public void FixedUpdate()
         {
             if (!Level.isLoaded) return;
-            if(DateTime.Now > n.AddSeconds(10))
+            if(DateTime.Now > n.AddSeconds(1))
             {
                 n = DateTime.Now;
                 foreach (var item in Configuration.Instance.BoughtHouses)
@@ -57,17 +71,18 @@ namespace Edsparr.Houseplugin
                         Uconomy.Instance.Database.IncreaseBalance(item.owner.ToString(), -getCost(getHouse(item.house)));
                     }
                 }
-                List<Transform> barricades = new List<Transform>();
-                List<Transform> structures = new List<Transform>();
+                List<BarricadeData> barricades = new List<BarricadeData>();
+                List<StructureData> structures = new List<StructureData>();
                 foreach(var region in BarricadeManager.regions)
                 {
                     foreach(var data in region.barricades)
                     {
                         if (data.barricade.isDead) continue;
-                        bool IsInH = IsInHouse(getTransform(data.point));
-                        if (IsInH)
+                        OwnerItem house = null;
+                        bool IsInH = IsInHouse(getTransform(data.point), out house);
+                        if (!IsInH || house != null && IsInH && data.group != house.steamGroup && data.owner != house.owner && data.group != 0)
                         {
-                            barricades.Add(getTransform(data.point));
+                            barricades.Add(data);
                         }
                     }
                 }
@@ -77,20 +92,39 @@ namespace Edsparr.Houseplugin
                     foreach (var data in region.structures)
                     {
                         if (data.structure.isDead) continue;
-                        bool IsInH = IsInHouse(getTransform(data.point));
-                        if (IsInH)
+                        OwnerItem house = null;
+                        bool IsInH = IsInHouse(getTransform(data.point), out house);
+                        if (!IsInH || house != null && data.group != house.steamGroup && data.owner != house.owner && data.group != 0)
                         {
-                            structures.Add(getTransform(data.point));
+                            structures.Add(data);
                         }
                     }
                 }
                 foreach(var s in structures)
                 {
-                    DeleteStructure(s);
+                    UnturnedPlayer placer = UnturnedPlayer.FromCSteamID((CSteamID)s.owner);
+                    if (placer != null)
+                    {
+                        try
+                        {
+                            UnturnedChat.Say(placer, "You're not allowed to place structures outside your house!", Color.red);
+                        }catch { }
+                        placer.GiveItem(s.structure.id, 1);
+                    }
+                    DeleteStructure(getTransform(s.point));
                 }
                 foreach(var b in barricades)
                 {
-                    DeleteBarriacade(b);
+                    UnturnedPlayer placer = UnturnedPlayer.FromCSteamID((CSteamID)b.owner);
+                    if (placer != null)
+                    {
+                        try
+                        {
+                            UnturnedChat.Say(placer, "You're not allowed to place barricades outside your house!", Color.red);
+                        }catch { }
+                        placer.GiveItem(b.barricade.id, 1);
+                    }
+                    DeleteBarriacade(getTransform(b.point));
                 }
             }
         }
@@ -102,21 +136,22 @@ namespace Edsparr.Houseplugin
             Configuration.Instance.BoughtHouses.Remove(Configuration.Instance.BoughtHouses.Find(c => (c.house == found.house)));
             Configuration.Save();
         }
-        public bool IsInHouse(Transform house)
+        public bool IsInHouse(Transform house, out OwnerItem houseee)
         {
+            houseee = null;
             if (house == null) return false;
             foreach (var item in Configuration.Instance.Houses)
             {
                 var housee = getHouseLevelObject(house.position);
-                if (housee != null && Configuration.Instance.BoughtHouses.Find(c => (c.house == getHouse(housee.transform.position).position)) == null) return true;
+                if (housee != null && Configuration.Instance.BoughtHouses.Find(c => (c.house == getHouse(housee.transform.position).position)) != null) {    houseee = Configuration.Instance.BoughtHouses.Find(c => (c.house == getHouse(housee.transform.position).position)); return true; }
             }
             return false;
         }
-        public bool buyhHouse(Transform house, ulong owner, out decimal cost)
+        public bool buyhHouse(Transform house, ulong owner, ulong steamgroup, out decimal cost)
         {
             cost = 0;
             if (Configuration.Instance.BoughtHouses.Find(c => (c.house == house.position)) != null) return false;
-            Configuration.Instance.BoughtHouses.Add(new OwnerItem(owner, DateTime.Now, house.position));
+            Configuration.Instance.BoughtHouses.Add(new OwnerItem(owner, DateTime.Now, house.position, steamgroup));
             cost = Configuration.Instance.Houses.Find(c => (c.id == getHouseLevelObject(house.position).asset.id)).cost;
             Configuration.Save();
             return true;
